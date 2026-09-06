@@ -1,16 +1,19 @@
-# React + Vite
+# Orisur
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+E-commerce de gadgets y tecnología portátil importada desde Asia (China, Japón, Corea) para su venta en Argentina.
 
-Currently, two official plugins are available:
+## Tecnologías
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React
+- Vite
 
-## React Compiler
+## Instalación y ejecución
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Clonar el repositorio
+2. Instalar dependencias: `npm install`
+3. Ejecutar en modo desarrollo: `npm run dev`
+4. Abrir en el navegador: [http://localhost:5173](http://localhost:5173)
 
-## Expanding the ESLint configuration
+## Estado del proyecto
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Pre-entrega 1: estructura base del proyecto generada con Vite (React + JavaScript).
