@@ -1,14 +1,14 @@
 import Navbar from "./components/Navbar/Navbar";
-import "./App.css";
+import ItemListContainer from "./components/ItemListContainer/ItemListContainer";
 
 function App() {
   return (
     <>
       <Navbar />
-      <h1>Orisur</h1>
-      <p>Gadgets y tecnología portátil importada de Asia para Argentina.</p>
+      <ItemListContainer greeting="¡Bienvenidos a Orisur! Encontrá la mejor tecnología portátil importada." />
     </>
   );
 }
 
 export default App;
+
