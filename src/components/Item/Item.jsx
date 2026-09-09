@@ -1,5 +1,5 @@
-// Item.jsx - Componente de presentación: muestra los datos visuales
-import "./Item.css";
+import "./ItemList.css";
+import Item from "../Item/Item";
 
 function Item({ product }) {
   const { name, price, category, img, stock, description } = product;
