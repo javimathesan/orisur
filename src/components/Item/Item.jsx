@@ -1,8 +1,7 @@
-import "./ItemList.css";
-import Item from "../Item/Item";
+import "./Item.css"; // Busca el CSS correcto 
 
-function Item({ product }) {
-  const { name, price, category, img, stock, description } = product;
+const Item = ({ product }) => {
+  const { name, price, img, category, description, stock } = product;
 
   return (
     <div className="item">
@@ -14,6 +13,7 @@ function Item({ product }) {
       <p className="item__stock">Stock: {stock}</p>
     </div>
   );
-}
+};
 
 export default Item;
+
