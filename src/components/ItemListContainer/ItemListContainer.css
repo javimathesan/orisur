@@ -1,7 +1,10 @@
 .item-list-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+}
+
+.greeting {
   text-align: center;
-  padding: 2rem;
+  margin-bottom: 20px;
 }
