@@ -1,0 +1,47 @@
+.item-detail {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem;
+  flex-wrap: wrap;
+}
+
+.item-detail-image img {
+  width: 100%;
+  max-width: 350px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.item-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 400px;
+}
+
+.item-detail-category {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.item-detail-name {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.item-detail-price {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.item-detail-description {
+  color: #555;
+  line-height: 1.4;
+}
+
+.item-detail-stock {
+  font-size: 0.9rem;
+  color: #666;
+}
