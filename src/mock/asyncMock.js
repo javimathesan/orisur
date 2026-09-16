@@ -1,5 +1,5 @@
 // Simulamos una llamada asíncrona a una API externa usando setTimeout
-const products = [
+export const products = [
   {
     id: 1,
     name: "Auriculares Bluetooth XPods",
