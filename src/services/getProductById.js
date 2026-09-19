@@ -5,7 +5,7 @@ import { products } from "../mock/asyncMock";
 export const getProductById = (productId) => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const product = products.find((item) => item.id === productId);
+      const product = products.find((item) => item.id === Number(productId));
 
       if (product) {
         resolve(product);
@@ -15,3 +15,4 @@ export const getProductById = (productId) => {
     }, 2000);
   });
 };
+
