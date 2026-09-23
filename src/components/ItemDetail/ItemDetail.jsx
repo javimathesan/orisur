@@ -1,8 +1,8 @@
 import ItemCount from '../ItemCount/ItemCount';
 import './ItemDetail.css';
 
-// Componente de presentación pura: solo recibe el producto por props
-const ItemDetail = ({ product }) => {
+// Componente de presentación pura: solo recibe el producto y el callback por props
+const ItemDetail = ({ product, onAdd }) => {
   const { name, price, category, img, description, stock } = product;
 
   const formattedPrice = price.toLocaleString('es-AR', {
@@ -23,7 +23,7 @@ const ItemDetail = ({ product }) => {
         <p className="item-detail-description">{description}</p>
         <p className="item-detail-stock">Stock disponible: {stock}</p>
 
-        <ItemCount stock={stock} />
+        <ItemCount stock={stock} onAdd={onAdd} />
       </div>
     </div>
   );
