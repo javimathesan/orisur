@@ -56,7 +56,6 @@ const Cart = () => {
             Vaciar carrito
           </button>
 
-          {/* Placeholder: la ruta /checkout se crea en el próximo paso */}
           <Link to="/checkout" className="cart-checkout">
             Finalizar compra
           </Link>
