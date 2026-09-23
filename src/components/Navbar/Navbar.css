@@ -49,3 +49,18 @@
 .navbar-categories a:hover {
   color: #cccccc;
 }
+.cart-widget {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cart-widget-count {
+  background: #ff5722; /* o el color que uses de acento */
+  color: white;
+  border-radius: 50%;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+}
