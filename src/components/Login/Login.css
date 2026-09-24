@@ -1,0 +1,96 @@
+/* src/components/Login/Login.css */
+
+.login {
+  max-width: 400px;
+  margin: 3rem auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.1);
+}
+
+.login h1 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.login-form label {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.login-form input {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd3d8;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #2c3e50;
+  transition: border-color 0.2s ease;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #2c3e50;
+}
+
+.login-form input:disabled {
+  background-color: #f0f2f4;
+  color: #8a97a0;
+  cursor: not-allowed;
+}
+
+.login-form button {
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  background-color: #2c3e50;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.login-form button:hover:not(:disabled) {
+  background-color: #1a252f;
+}
+
+.login-form button:disabled {
+  background-color: #8a97a0;
+  cursor: not-allowed;
+}
+
+.login-error {
+  background-color: #fdecea;
+  color: #b3261e;
+  border: 1px solid #f5c2c0;
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.login-register-link {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.login-register-link a {
+  color: #2c3e50;
+  font-weight: 600;
+  text-decoration: underline;
+}
