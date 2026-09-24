@@ -64,3 +64,17 @@
   padding: 0.1rem 0.4rem;
   font-size: 0.75rem;
 }
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.navbar-logout-btn {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+}
