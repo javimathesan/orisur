@@ -4,73 +4,778 @@ E-commerce de gadgets y tecnología portátil importada desde Asia (China, Japó
 
 ## Tecnologías
 
-- React
-- Vite
-- React Router DOM
+* React 19
+* Vite
+* React Router DOM
+* Context API
+* Firebase
+
+  * Cloud Firestore
+  * Firebase Authentication
 
 ## Instalación y ejecución
 
-1. Clonar el repositorio
-2. Instalar dependencias: `npm install`
-3. Ejecutar en modo desarrollo: `npm run dev`
-4. Abrir en el navegador: [http://localhost:5173](http://localhost:5173)
+1. Clonar el repositorio.
+
+1. Instalar las dependencias ejecutando `npm install`.
+
+1. Copiar el archivo `.env.example` como `.env`.
+
+1. Completar las variables de entorno con las credenciales correspondientes al proyecto de Firebase.
+
+1. Ejecutar la aplicación en modo desarrollo con `npm run dev`.
+
+1. Abrir en el navegador: [http://localhost:5173](http://localhost:5173).
+
+Para verificar la calidad del código con ESLint, ejecutar:
+
+```bash
+npm run lint
+```
+
+## Variables de entorno
+
+El proyecto utiliza variables de entorno con prefijo `VITE_`, requerido por Vite para exponerlas en el cliente.
+
+El archivo `.env` contiene la configuración correspondiente al proyecto de Firebase y se encuentra excluido del repositorio mediante `.gitignore`.
+
+Se incluye un archivo `.env.example` como referencia, sin credenciales reales:
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+Estas variables se consumen en:
+
+```text
+src/services/firebase.jsx
+```
+
+para inicializar Firebase.
+
+## Firebase
+
+### Configuración
+
+`src/services/firebase.jsx` centraliza la conexión con Firebase.
+
+El archivo inicializa la aplicación y exporta:
+
+* `db`: instancia de Cloud Firestore utilizada para leer el catálogo y guardar órdenes.
+* `auth`: instancia de Firebase Authentication utilizada para registro, login y logout.
+
+## Cloud Firestore
+
+### Colección `items`
+
+La colección `items` contiene el catálogo de productos.
+
+Cada documento posee la información necesaria para mostrar y utilizar el producto.
+
+Ejemplo:
+
+```json
+{
+  "name": "Auriculares Bluetooth XPods",
+  "description": "Auriculares inalámbricos con estuche de carga",
+  "price": 15000,
+  "img": "url-de-la-imagen",
+  "category": "Auriculares",
+  "stock": 20
+}
+```
+
+El ID generado por Firestore se incorpora al objeto utilizado por React.
+
+### Colección `orders`
+
+La colección `orders` almacena las órdenes generadas desde el checkout.
+
+Cada documento contiene el usuario autenticado, los datos de entrega, los productos comprados, el total de la operación y la fecha de creación generada por Firestore.
+
+Ejemplo de estructura:
+
+```json
+{
+  "uid": "uid-del-usuario-autenticado",
+  "email": "usuario@email.com",
+  "deliveryData": {
+    "nombre": "Nombre",
+    "apellido": "Apellido",
+    "telefono": "Teléfono",
+    "direccion": "Dirección",
+    "ciudad": "Ciudad"
+  },
+  "items": [
+    {
+      "id": "id-del-producto",
+      "name": "Nombre del producto",
+      "price": 15000,
+      "quantity": 2
+    }
+  ],
+  "total": 30000,
+  "createdAt": "serverTimestamp()"
+}
+```
+
+Antes de generar una orden, el checkout verifica que:
+
+* exista un usuario autenticado;
+* el carrito tenga productos;
+* los campos obligatorios del formulario estén completos.
+
+La orden se crea mediante:
+
+```text
+addDoc()
+```
+
+sobre la colección `orders`.
+
+La fecha se genera utilizando:
+
+```text
+serverTimestamp()
+```
+
+Si la operación finaliza correctamente:
+
+1. Firestore genera el ID de la orden;
+2. la aplicación muestra ese ID al usuario;
+3. el carrito se vacía mediante `clear()`.
+
+Si ocurre un error durante la creación de la orden, se muestra un mensaje de error y el carrito conserva sus productos.
+
+## Reglas de seguridad de Firestore
+
+Las reglas de Firestore diferencian los permisos según la colección.
+
+### `items`
+
+* La lectura es pública.
+* No se permite escritura desde el cliente.
+* El catálogo se administra desde Firebase.
+
+### `orders`
+
+La creación de órdenes solamente está permitida cuando existe un usuario autenticado y el `uid` incluido en el documento coincide con el usuario autenticado.
+
+La validación sigue conceptualmente esta condición:
+
+```text
+request.auth != null
+&&
+request.resource.data.uid == request.auth.uid
+```
+
+No se permite leer, actualizar ni eliminar órdenes desde el cliente.
+
+De esta manera, la seguridad no depende únicamente de las validaciones realizadas en la interfaz.
+
+## Autenticación
+
+La autenticación se administra mediante:
+
+```text
+src/context/AuthContext.jsx
+```
+
+`AuthProvider` mantiene el estado global del usuario y expone:
+
+* `user`: usuario autenticado actual o `null`.
+* `loading`: estado de carga mientras Firebase valida la sesión.
+* `register(email, password)`: registra un nuevo usuario.
+* `login(email, password)`: inicia sesión.
+* `logout()`: cierra la sesión.
+
+La sesión se sincroniza mediante:
+
+```text
+onAuthStateChanged
+```
+
+Esto permite conservar el estado del usuario al recargar la aplicación.
+
+También se implementaron las rutas:
+
+```text
+/login
+/register
+```
+
+Cada una contiene un formulario controlado con manejo de validaciones, estado de envío y errores.
+
+Los errores de Firebase Authentication son procesados mediante:
+
+```text
+src/services/mapFirebaseError.js
+```
+
+Este servicio traduce los códigos de error de Firebase a mensajes claros en español.
+
+Cuando existe un usuario autenticado, la Navbar muestra su email y permite cerrar sesión.
+
+## Rutas protegidas
+
+La aplicación implementa:
+
+```text
+src/components/ProtectedRoute/ProtectedRoute.jsx
+```
+
+Este componente utiliza el estado de autenticación para proteger el checkout.
+
+La ruta protegida es:
+
+```text
+/checkout
+```
+
+Si un usuario no autenticado intenta acceder al checkout, es redirigido a:
+
+```text
+/login
+```
+
+mediante `Navigate` de React Router.
 
 ## Componentes
 
-- **Layout**: componente contenedor de las rutas, envuelve las páginas con Navbar y Footer usando `<Outlet />` de React Router, manteniéndolos visibles en toda la navegación.
-- **Navbar**: barra de navegación con el logo de la tienda (tipo monograma, enlace a Inicio), categorías de productos (Auriculares, Smartwatches, Cargadores, Accesorios) navegables con `NavLink`, e incluye el componente CartWidget.
-- **CartWidget**: ícono de carrito de compras que muestra la cantidad real de ítems en el carrito (`totalItems`), obtenida desde `CartContext` mediante el hook `useCart`. Si el carrito está vacío, no muestra el número.
-- **ItemListContainer**: obtiene el catálogo de productos de forma asíncrona al montarse (`useState` + `useEffect`) y lo pasa por props a ItemList. Captura el parámetro `categoryId` de la URL con `useParams` y filtra el catálogo por categoría; si no hay categoría en la URL, muestra todos los productos. También renderiza la prop `greeting` como saludo de bienvenida.
-- **ItemList**: recibe los productos por props y los recorre con `.map()` para renderizar un componente Item por cada uno, usando `id` como key.
-- **Item**: componente de presentación pura que muestra la imagen, nombre, categoría y precio de un producto individual. Todo el contenido de la card está envuelto en un `Link` que navega al detalle del producto (`/item/:id`).
-- **ItemDetailContainer**: captura el `id` del producto desde la URL con `useParams` y obtiene el producto correspondiente de forma asíncrona usando `useState` + `useEffect` con `async/await`, delegando la presentación a ItemDetail. Muestra un mensaje de carga mientras la promesa se resuelve.
-- **ItemDetail**: componente de presentación pura que muestra el detalle completo de un producto (imagen, nombre, categoría, precio, descripción y stock disponible), integra ItemCount para seleccionar la cantidad a comprar y, mediante `CartContext` (`useCart`), permite agregar el producto seleccionado al carrito con la cantidad elegida.
-- **ItemCount**: recibe el stock disponible por props y administra la cantidad seleccionada con botones de incremento/decremento, sin permitir valores menores a 1 ni mayores al stock.
-- **Footer**: pie de página con el nombre de la tienda y el año actual generado dinámicamente.
-- **NotFound**: componente que se muestra cuando la ruta ingresada no coincide con ninguna de las rutas definidas (error 404).
-- **Cart**: vista dedicada (`/cart`) que consume `CartContext` mediante `useCart`. Si el carrito está vacío muestra un mensaje y un link para volver al catálogo; si tiene productos, lista nombre, cantidad, precio unitario y subtotal de cada ítem, permite eliminarlos individualmente, muestra el precio total general, un botón para vaciar el carrito y un enlace hacia `/checkout`.
-- **Checkout**: vista (`/checkout`) con un formulario controlado que captura los datos del comprador (nombre, email, teléfono). Al confirmar, limpia el carrito mediante `clear()` y muestra un mensaje de agradecimiento por la compra. Si se ingresa a esta ruta con el carrito vacío, se informa al usuario en lugar de mostrar el formulario.
+### Layout
 
-## Datos y carga asíncrona
+Componente contenedor de las rutas.
 
-El catálogo de productos se simula mediante `src/mock/asyncMock.js`, que exporta una función `getProducts()` devolviendo una Promise resuelta con `setTimeout` (2000ms de demora) con un array de 6 productos. Cada producto incluye `id`, `name`, `price`, `category`, `img`, `stock` y `description`. ItemListContainer consume esta función dentro de un `useEffect`, guarda el resultado en estado con `useState` y lo delega a ItemList para su renderizado.
+Utiliza `<Outlet />` de React Router y mantiene visibles Navbar y Footer durante la navegación.
 
-## Detalle de producto y promesa dinámica
+### Navbar
 
-Además del listado, se implementó la obtención de un producto individual mediante `getProductById(id)`, un servicio que retorna una Promise que simula demora con `setTimeout` y busca el producto por su propiedad `id` (nunca por índice), resolviendo con el producto encontrado o rechazando si no existe. Es una función dinámica: no devuelve siempre el mismo producto.
+Barra de navegación principal.
 
-ItemDetailContainer consume esta promesa dentro de un `useEffect` usando `async/await` con `try/catch` (convención elegida en el proyecto para el manejo de promesas en los containers), guarda el resultado en estado y lo pasa por props a ItemDetail.
+Incluye:
 
-## Carrito de compras (Context API)
+* logo de la tienda;
+* navegación por categorías;
+* CartWidget;
+* enlaces de Login y Register cuando no existe sesión;
+* email del usuario y botón de cerrar sesión cuando existe una sesión activa.
 
-El estado global del carrito se maneja con `src/context/CartContext.jsx`, que define `CartContext` (creado con `createContext`) y un componente `CartProvider` que administra el estado `cart` con `useState`. El `CartProvider` envuelve toda la aplicación y expone las siguientes funciones, todas con actualizaciones inmutables (spread operators, `.map()`, `.filter()`):
+### CartWidget
 
-- `addItem(item, quantity)`: agrega un producto al carrito; si ya existe (comparado por `id`), suma la cantidad nueva a la existente sin duplicar el ítem.
-- `removeItem(itemId)`: elimina un producto del carrito por su `id`.
-- `clear()`: vacía el carrito por completo.
-- `isInCart(id)`: indica si un producto ya se encuentra en el carrito.
-- `totalItems`: cantidad total de unidades en el carrito (suma de cantidades).
-- `totalPrice`: precio total del carrito.
+Muestra el ícono del carrito y la cantidad total de unidades agregadas.
 
-Se creó además un custom hook `useCart` para simplificar el consumo del contexto en los componentes, evitando el *prop drilling* del carrito a través de la jerarquía de componentes.
+Obtiene `totalItems` desde `CartContext` utilizando `useCart`.
+
+Si el carrito está vacío, no muestra contador.
+
+### ItemListContainer
+
+Obtiene los productos directamente desde Firestore.
+
+Sin categoría utiliza:
+
+```text
+collection()
+getDocs()
+```
+
+Cuando existe `categoryId`, utiliza:
+
+```text
+query()
+where()
+```
+
+para filtrar los productos directamente desde Firestore.
+
+Maneja estados diferenciados de:
+
+* carga;
+* productos obtenidos correctamente;
+* categoría sin resultados;
+* error durante la consulta.
+
+### ItemList
+
+Recibe los productos mediante props y los recorre con `.map()` para renderizar un componente `Item` por producto.
+
+### Item
+
+Componente de presentación que muestra:
+
+* imagen;
+* nombre;
+* categoría;
+* precio.
+
+La tarjeta navega hacia:
+
+```text
+/item/:id
+```
+
+mediante `Link`.
+
+### ItemDetailContainer
+
+Captura el ID del producto desde la URL utilizando `useParams`.
+
+Obtiene el documento correspondiente mediante:
+
+```text
+doc()
+getDoc()
+```
+
+Distingue entre:
+
+* carga;
+* producto obtenido correctamente;
+* producto inexistente;
+* error durante la consulta.
+
+De esta forma, un error de conexión o permisos no se interpreta como si el producto no existiera.
+
+### ItemDetail
+
+Muestra:
+
+* imagen;
+* nombre;
+* categoría;
+* precio;
+* descripción;
+* stock.
+
+Integra `ItemCount` para seleccionar una cantidad y permite agregar el producto al carrito mediante `CartContext`.
+
+### ItemCount
+
+Administra la cantidad seleccionada.
+
+No permite valores menores a 1 ni mayores al stock disponible.
+
+### Cart
+
+Vista disponible en:
+
+```text
+/cart
+```
+
+Consume `CartContext` mediante `useCart`.
+
+Permite:
+
+* visualizar productos agregados;
+* ver cantidades;
+* ver precios unitarios;
+* consultar subtotales;
+* eliminar productos;
+* vaciar el carrito;
+* visualizar el total;
+* continuar hacia el checkout.
+
+### Login
+
+Vista:
+
+```text
+/login
+```
+
+Permite iniciar sesión mediante email y contraseña.
+
+Incluye:
+
+* formulario controlado;
+* validaciones;
+* estado de envío;
+* mensajes de error traducidos desde Firebase.
+
+### Register
+
+Vista:
+
+```text
+/register
+```
+
+Permite crear una cuenta mediante Firebase Authentication.
+
+Utiliza la misma estrategia de validaciones y manejo de errores que Login.
+
+### ProtectedRoute
+
+Verifica que exista un usuario autenticado antes de permitir el acceso a sus rutas hijas.
+
+Si no existe sesión, redirige a `/login`.
+
+### Checkout
+
+Vista protegida disponible en:
+
+```text
+/checkout
+```
+
+Solicita:
+
+* nombre;
+* apellido;
+* teléfono;
+* dirección;
+* ciudad.
+
+Antes de generar una orden valida:
+
+* autenticación;
+* existencia de productos en el carrito;
+* campos obligatorios.
+
+Después construye el objeto de orden y lo guarda en Firestore mediante `addDoc()`.
+
+Si la operación finaliza correctamente:
+
+* muestra el ID de la orden;
+* confirma la compra;
+* vacía el carrito.
+
+Si falla:
+
+* muestra un mensaje;
+* conserva los productos del carrito.
+
+### Footer
+
+Pie de página con el nombre de la tienda y el año actual generado dinámicamente.
+
+### NotFound
+
+Componente utilizado cuando la URL ingresada no corresponde con ninguna ruta definida.
+
+## Catálogo y detalle con Firestore
+
+En esta etapa se reemplazó completamente el sistema anterior basado en datos simulados.
+
+Se eliminaron:
+
+```text
+src/mock/asyncMock.js
+src/services/getProductById.js
+```
+
+Los productos ahora se obtienen directamente desde Firestore.
+
+### Listado de productos
+
+`ItemListContainer` consulta:
+
+```text
+collection(db, "items")
+```
+
+y obtiene los documentos mediante:
+
+```text
+getDocs()
+```
+
+Cuando existe una categoría en la URL, utiliza:
+
+```text
+query()
+where("category", "==", categoryId)
+```
+
+De esta manera, Firestore realiza el filtrado antes de enviar los documentos al cliente.
+
+### Detalle de producto
+
+`ItemDetailContainer` construye la referencia mediante:
+
+```text
+doc(db, "items", id)
+```
+
+y obtiene el documento utilizando:
+
+```text
+getDoc()
+```
+
+El ID generado por Firestore se incorpora al objeto del producto que consume React.
+
+Los containers utilizan `async/await` con `try/catch/finally` dentro de `useEffect`.
+
+## Carrito de compras
+
+El estado global del carrito se administra mediante:
+
+```text
+src/context/CartContext.jsx
+```
+
+`CartProvider` mantiene el estado `cart` y expone:
+
+* `addItem(item, quantity)`: agrega un producto al carrito o incrementa su cantidad si ya existe.
+* `removeItem(id)`: elimina un producto.
+* `clear()`: vacía el carrito.
+* `isInCart(id)`: indica si un producto se encuentra en el carrito.
+* `totalItems`: cantidad total de unidades.
+* `totalPrice`: importe total del carrito.
+
+Las actualizaciones se realizan de forma inmutable utilizando spread operators, `.map()` y `.filter()`.
+
+También se utiliza el custom hook:
+
+```text
+useCart
+```
+
+para simplificar el consumo del contexto y evitar prop drilling.
+
+## Checkout y generación de órdenes
+
+El checkout requiere autenticación.
+
+El flujo es el siguiente:
+
+1. El usuario agrega productos al carrito.
+2. Desde `/cart` intenta continuar al checkout.
+3. Si no está autenticado, es redirigido a `/login`.
+4. Después de iniciar sesión puede ingresar a `/checkout`.
+5. Completa los datos de entrega.
+6. El formulario valida los campos obligatorios.
+7. Se verifica nuevamente que exista un usuario autenticado.
+8. Se verifica que el carrito tenga productos.
+9. Se crea el objeto de orden.
+10. Se utiliza `addDoc()` para almacenarlo en Firestore.
+11. Se utiliza `serverTimestamp()` para registrar la fecha.
+12. Firestore devuelve el ID generado.
+13. El ID se muestra como confirmación.
+14. El carrito se vacía únicamente después de una creación exitosa.
+
+## Manejo de errores y feedback visual
+
+Las operaciones asíncronas muestran feedback para evitar estados ambiguos.
+
+### Catálogo
+
+`ItemListContainer` contempla:
+
+* carga;
+* listado obtenido correctamente;
+* categoría sin resultados;
+* error durante la consulta.
+
+### Detalle
+
+`ItemDetailContainer` contempla:
+
+* carga;
+* producto obtenido;
+* producto inexistente;
+* error de conexión o consulta.
+
+### Errores de autenticación
+
+Login y Register muestran mensajes en español mediante `mapFirebaseError.js`.
+
+### Errores durante el checkout
+
+El checkout informa:
+
+* campos obligatorios faltantes;
+* carrito vacío;
+* falta de autenticación;
+* error al generar una orden.
+
+Durante la creación se deshabilita temporalmente el botón de confirmación y se muestra el estado:
+
+```text
+Procesando...
+```
 
 ## Routing
 
-La navegación de la aplicación se maneja con `react-router-dom`. `App.jsx` envuelve la app en un `BrowserRouter` y define las siguientes rutas dentro de un `Layout` compartido (Navbar y Footer persistentes vía `Outlet`):
+La navegación se implementa mediante `react-router-dom`.
 
-- `/` — Inicio: muestra todos los productos.
-- `/category/:categoryId` — Categoría: reutiliza el mismo ItemListContainer/ItemList/Item, filtrando por el parámetro de categoría recibido en la URL.
-- `/item/:id` — Detalle de producto: ItemDetailContainer captura el `id` con `useParams` y obtiene el producto real correspondiente.
-- `/cart` — Carrito: muestra el componente Cart con el listado de productos agregados, sus subtotales, el total general y las acciones de eliminar/vaciar.
-- `/checkout` — Checkout: formulario para finalizar la compra, que limpia el carrito y confirma la operación al usuario.
-- `*` — Ruta 404: muestra el componente NotFound ante cualquier ruta no definida.
+La aplicación utiliza:
 
-La navegación entre secciones se realiza siempre con `Link` y `NavLink`, sin usar etiquetas `<a>` nativas.
+* `BrowserRouter`
+* `Routes`
+* `Route`
+* `Link`
+* `NavLink`
+* `Navigate`
+* `Outlet`
+* `useParams`
+
+Las rutas disponibles son:
+
+* `/` — catálogo completo.
+* `/category/:categoryId` — catálogo filtrado por categoría.
+* `/item/:id` — detalle de producto.
+* `/cart` — carrito.
+* `/login` — inicio de sesión.
+* `/register` — registro.
+* `/checkout` — checkout protegido.
+* `*` — página 404.
+
+La navegación interna se realiza mediante `Link` y `NavLink`.
+
+## Recorrido de prueba
+
+Para verificar las principales funcionalidades de la aplicación se puede realizar el siguiente recorrido:
+
+1. Ejecutar `npm run dev`.
+1. Ingresar a `/`.
+1. Verificar que los productos se carguen desde Firestore.
+1. Seleccionar una categoría desde la Navbar.
+1. Comprobar que solamente se muestren los productos correspondientes a esa categoría.
+1. Abrir un producto.
+1. Verificar que `/item/:id` muestre su información obtenida desde Firestore.
+1. Seleccionar una cantidad válida.
+1. Agregar el producto al carrito.
+1. Ingresar a `/cart`.
+1. Verificar productos, cantidades, subtotales y total.
+1. Intentar acceder a `/checkout` sin iniciar sesión.
+1. Verificar que la aplicación redirija a `/login`.
+1. Crear una cuenta desde `/register` o iniciar sesión con una cuenta existente.
+1. Recargar la página.
+1. Verificar que la sesión continúe activa.
+1. Verificar que la Navbar muestre el email del usuario.
+1. Volver al carrito e ingresar a `/checkout`.
+1. Completar los datos de entrega.
+1. Confirmar la compra.
+1. Verificar que se muestre el ID generado por Firestore.
+1. Verificar que el carrito quede vacío después de una compra exitosa.
+1. Probar el botón de cerrar sesión.
+
+## Casos de prueba adicionales
+
+También pueden comprobarse los siguientes casos:
+
+* Ingresar a un ID de producto inexistente.
+* Intentar acceder al checkout sin autenticación.
+* Intentar continuar con el carrito vacío.
+* Intentar enviar el checkout con campos incompletos.
+* Ingresar credenciales incorrectas.
+* Comprobar que los errores de Firebase se muestren en pantalla.
+* Comprobar que la aplicación no quede indefinidamente en estado de carga.
 
 ## Estado del proyecto
 
-Pre-entrega 6: se incorporó Context API para manejar el estado global del carrito de compras. Se creó `CartContext`/`CartProvider` con las funciones `addItem`, `removeItem`, `clear`, `isInCart`, `totalItems` y `totalPrice`, todas con actualizaciones inmutables. ItemDetail se integró con el carrito a través del hook `useCart`, permitiendo agregar productos con la cantidad seleccionada en ItemCount. CartWidget ahora refleja la cantidad real de ítems en el carrito. Se agregaron las vistas `/cart` (listado, subtotales, total y acciones de eliminar/vaciar) y `/checkout` (formulario controlado para finalizar la compra). Esta etapa se desarrolló en la rama `feature/cart-context`, fusionada luego a `main`.
+### Pre-entrega 7
 
-Pre-entrega 5: se integró React Router para dar navegación completa a la aplicación. Se implementaron las rutas de Inicio, Categoría (con filtrado dinámico vía `useParams`), Detalle de producto (conectado a datos reales vía `useParams` y `getProductById`) y una ruta 404. Se agregó un componente Layout con Navbar y Footer persistentes mediante `Outlet`, y se actualizó Navbar para usar `NavLink` en las categorías. El componente Item ahora navega al detalle mediante `Link`. Esta etapa se desarrolló en la rama `feature/routing`, fusionada luego a `main`.
+En esta etapa se migró la aplicación desde datos simulados hacia Firebase.
 
-Etapas anteriores: en Pre-entrega 4 se implementó la obtención dinámica de un producto individual mediante una promesa (`getProductById`), junto con los componentes ItemDetailContainer, ItemDetail e ItemCount. En Pre-entrega 3 se transformó el catálogo estático en dinámico consumiendo datos mock de forma asíncrona, con los componentes ItemList e Item, desarrollados en la rama `feature/listado-dinamico` y luego fusionados a `main`.
+Se incorporó:
+
+* Firebase SDK.
+* Configuración mediante variables de entorno.
+* Cloud Firestore.
+* Colección `items`.
+* Consultas mediante `collection()` y `getDocs()`.
+* Filtrado por categoría mediante `query()` y `where()`.
+* Obtención individual mediante `doc()` y `getDoc()`.
+* Firebase Authentication.
+* Registro de usuarios.
+* Inicio de sesión.
+* Cierre de sesión.
+* Persistencia mediante `onAuthStateChanged`.
+* `AuthContext`.
+* Rutas `/login` y `/register`.
+* `ProtectedRoute`.
+* Protección de `/checkout`.
+* Generación de órdenes en Firestore.
+* Asociación de cada orden con el usuario autenticado.
+* Uso de `addDoc()`.
+* Uso de `serverTimestamp()`.
+* ID de confirmación de compra.
+* Reglas de seguridad de Firestore.
+* Manejo de errores de Firebase en español.
+* Estados diferenciados de carga, ausencia de resultados y error.
+* Eliminación de los mocks de productos utilizados en etapas anteriores.
+* Correcciones de ESLint.
+
+Esta etapa se desarrolla en la rama:
+
+```text
+feature/firebase-integration
+```
+
+### Pre-entrega 6
+
+Se incorporó Context API para administrar globalmente el carrito.
+
+Se creó `CartContext` y `CartProvider` con:
+
+* `addItem`
+* `removeItem`
+* `clear`
+* `isInCart`
+* `totalItems`
+* `totalPrice`
+
+ItemDetail se integró con el carrito mediante `useCart`.
+
+CartWidget comenzó a reflejar la cantidad real de unidades.
+
+También se agregaron:
+
+```text
+/cart
+/checkout
+```
+
+en sus versiones iniciales.
+
+Esta etapa se desarrolló en:
+
+```text
+feature/cart-context
+```
+
+y posteriormente se fusionó a `main`.
+
+### Pre-entrega 5
+
+Se incorporó React Router.
+
+Se implementaron:
+
+* Inicio.
+* Categorías.
+* Detalle de producto.
+* Ruta 404.
+* Layout.
+* Navbar.
+* Footer.
+* Navegación mediante `Link` y `NavLink`.
+
+Esta etapa se desarrolló en:
+
+```text
+feature/routing
+```
+
+y posteriormente se fusionó a `main`.
+
+### Etapas anteriores
+
+En la Pre-entrega 4 se implementó el detalle dinámico de productos mediante una promesa simulada junto con:
+
+* ItemDetailContainer.
+* ItemDetail.
+* ItemCount.
+
+En la Pre-entrega 3 se transformó el catálogo estático en un catálogo dinámico mediante datos mock y carga asíncrona.
+
+Los mecanismos basados en mocks fueron reemplazados por Firestore durante la Pre-entrega 7.
