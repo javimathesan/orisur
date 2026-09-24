@@ -1,31 +1,103 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../services/formatPrice';
 import './Checkout.css';
 
+const initialForm = {
+  nombre: '',
+  apellido: '',
+  telefono: '',
+  direccion: '',
+  ciudad: '',
+};
+
 const Checkout = () => {
   const { cart, clear, totalItems, totalPrice } = useCart();
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '' });
-  const [comprado, setComprado] = useState(false);
-  const [nombreComprador, setNombreComprador] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState(initialForm);
+  const [errores, setErrores] = useState({});
+  const [enviando, setEnviando] = useState(false);
+  const [errorOrden, setErrorOrden] = useState('');
+  const [ordenId, setOrdenId] = useState(null);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    // Limpiamos el error del campo apenas el usuario vuelve a escribir
+    if (errores[name]) {
+      setErrores((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  // Valida que ningún campo obligatorio quede vacío
+  const validarForm = () => {
+    const nuevosErrores = {};
+    Object.entries(form).forEach(([campo, valor]) => {
+      if (!valor.trim()) {
+        nuevosErrores[campo] = 'Este campo es obligatorio';
+      }
+    });
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setNombreComprador(form.nombre);
-    clear();
-    setComprado(true);
+    setErrorOrden('');
+
+    // Chequeos de seguridad además del ProtectedRoute (defensa en profundidad)
+    if (!user) {
+      setErrorOrden('Debés iniciar sesión para finalizar la compra.');
+      return;
+    }
+    if (cart.length === 0) {
+      setErrorOrden('Tu carrito está vacío.');
+      return;
+    }
+    if (!validarForm()) {
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      const orderData = {
+        uid: user.uid,
+        email: user.email,
+        deliveryData: { ...form },
+        items: cart.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        total: totalPrice,
+        createdAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+
+      // Solo vaciamos el carrito si la orden se creó con éxito
+      clear();
+      setOrdenId(docRef.id);
+    } catch (error) {
+      setErrorOrden('No pudimos generar tu orden. Intentá nuevamente en unos minutos.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
-  // Compra ya finalizada: mensaje de agradecimiento
-  if (comprado) {
+  // Compra ya finalizada: mensaje de agradecimiento + ID de orden
+  if (ordenId) {
     return (
       <div className="checkout-container checkout-gracias">
-        <h2>¡Gracias por tu compra, {nombreComprador}!</h2>
+        <h2>¡Gracias por tu compra, {form.nombre}!</h2>
+        <p>Tu número de orden es: <strong>{ordenId}</strong></p>
         <p>Te vamos a contactar pronto para coordinar la entrega.</p>
         <Link to="/" className="checkout-volver">Volver al catálogo</Link>
       </div>
@@ -52,39 +124,66 @@ const Checkout = () => {
         <p>Total a pagar: {formatPrice(totalPrice)}</p>
       </div>
 
-      <form className="checkout-form" onSubmit={handleSubmit}>
+      {errorOrden && <p className="checkout-error" role="alert">{errorOrden}</p>}
+
+      <form className="checkout-form" onSubmit={handleSubmit} noValidate>
         <label htmlFor="nombre">Nombre</label>
         <input
           id="nombre"
           name="nombre"
           type="text"
+          autoComplete="given-name"
           value={form.nombre}
           onChange={handleChange}
-          required
         />
+        {errores.nombre && <span className="checkout-campo-error">{errores.nombre}</span>}
 
-        <label htmlFor="email">Email</label>
+        <label htmlFor="apellido">Apellido</label>
         <input
-          id="email"
-          name="email"
-          type="email"
-          value={form.email}
+          id="apellido"
+          name="apellido"
+          type="text"
+          autoComplete="family-name"
+          value={form.apellido}
           onChange={handleChange}
-          required
         />
+        {errores.apellido && <span className="checkout-campo-error">{errores.apellido}</span>}
 
         <label htmlFor="telefono">Teléfono</label>
         <input
           id="telefono"
           name="telefono"
           type="tel"
+          autoComplete="tel"
           value={form.telefono}
           onChange={handleChange}
-          required
         />
+        {errores.telefono && <span className="checkout-campo-error">{errores.telefono}</span>}
 
-        <button type="submit" className="checkout-confirmar">
-          Confirmar compra
+        <label htmlFor="direccion">Dirección</label>
+        <input
+          id="direccion"
+          name="direccion"
+          type="text"
+          autoComplete="street-address"
+          value={form.direccion}
+          onChange={handleChange}
+        />
+        {errores.direccion && <span className="checkout-campo-error">{errores.direccion}</span>}
+
+        <label htmlFor="ciudad">Ciudad</label>
+        <input
+          id="ciudad"
+          name="ciudad"
+          type="text"
+          autoComplete="address-level2"
+          value={form.ciudad}
+          onChange={handleChange}
+        />
+        {errores.ciudad && <span className="checkout-campo-error">{errores.ciudad}</span>}
+
+        <button type="submit" className="checkout-confirmar" disabled={enviando}>
+          {enviando ? 'Procesando...' : 'Confirmar compra'}
         </button>
       </form>
     </div>
