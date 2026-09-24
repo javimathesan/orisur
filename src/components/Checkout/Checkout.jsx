@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useCart } from '../../context/CartContext';
@@ -18,7 +18,6 @@ const initialForm = {
 const Checkout = () => {
   const { cart, clear, totalItems, totalPrice } = useCart();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [form, setForm] = useState(initialForm);
   const [errores, setErrores] = useState({});
@@ -28,89 +27,120 @@ const Checkout = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    // Limpiamos el error del campo apenas el usuario vuelve a escribir
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
     if (errores[name]) {
-      setErrores((prev) => ({ ...prev, [name]: '' }));
+      setErrores((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
     }
   };
 
-  // Valida que ningún campo obligatorio quede vacío
   const validarForm = () => {
     const nuevosErrores = {};
+
     Object.entries(form).forEach(([campo, valor]) => {
       if (!valor.trim()) {
         nuevosErrores[campo] = 'Este campo es obligatorio';
       }
     });
+
     setErrores(nuevosErrores);
+
     return Object.keys(nuevosErrores).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setErrorOrden('');
 
-    // Chequeos de seguridad además del ProtectedRoute (defensa en profundidad)
     if (!user) {
       setErrorOrden('Debés iniciar sesión para finalizar la compra.');
       return;
     }
+
     if (cart.length === 0) {
       setErrorOrden('Tu carrito está vacío.');
       return;
     }
+
     if (!validarForm()) {
       return;
     }
 
     setEnviando(true);
+
     try {
       const orderData = {
         uid: user.uid,
         email: user.email,
         deliveryData: { ...form },
+
         items: cart.map((item) => ({
           id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
         })),
+
         total: totalPrice,
         createdAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      const docRef = await addDoc(
+        collection(db, 'orders'),
+        orderData
+      );
 
-      // Solo vaciamos el carrito si la orden se creó con éxito
       clear();
       setOrdenId(docRef.id);
-    } catch (error) {
-      setErrorOrden('No pudimos generar tu orden. Intentá nuevamente en unos minutos.');
+    } catch {
+      setErrorOrden(
+        'No pudimos generar tu orden. Intentá nuevamente en unos minutos.'
+      );
     } finally {
       setEnviando(false);
     }
   };
 
-  // Compra ya finalizada: mensaje de agradecimiento + ID de orden
   if (ordenId) {
     return (
       <div className="checkout-container checkout-gracias">
         <h2>¡Gracias por tu compra, {form.nombre}!</h2>
-        <p>Tu número de orden es: <strong>{ordenId}</strong></p>
-        <p>Te vamos a contactar pronto para coordinar la entrega.</p>
-        <Link to="/" className="checkout-volver">Volver al catálogo</Link>
+
+        <p>
+          Tu número de orden es: <strong>{ordenId}</strong>
+        </p>
+
+        <p>
+          Te vamos a contactar pronto para coordinar la entrega.
+        </p>
+
+        <Link to="/" className="checkout-volver">
+          Volver al catálogo
+        </Link>
       </div>
     );
   }
 
-  // Carrito vacío y todavía no se compró nada: no tiene sentido mostrar el form
   if (cart.length === 0) {
     return (
       <div className="checkout-container checkout-vacio">
         <h2>No tenés productos para finalizar la compra</h2>
-        <p>Agregá productos al carrito antes de continuar.</p>
-        <Link to="/" className="checkout-volver">Ir al catálogo</Link>
+
+        <p>
+          Agregá productos al carrito antes de continuar.
+        </p>
+
+        <Link to="/" className="checkout-volver">
+          Ir al catálogo
+        </Link>
       </div>
     );
   }
@@ -124,10 +154,21 @@ const Checkout = () => {
         <p>Total a pagar: {formatPrice(totalPrice)}</p>
       </div>
 
-      {errorOrden && <p className="checkout-error" role="alert">{errorOrden}</p>}
+      {errorOrden && (
+        <p className="checkout-error" role="alert">
+          {errorOrden}
+        </p>
+      )}
 
-      <form className="checkout-form" onSubmit={handleSubmit} noValidate>
-        <label htmlFor="nombre">Nombre</label>
+      <form
+        className="checkout-form"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        <label htmlFor="nombre">
+          Nombre
+        </label>
+
         <input
           id="nombre"
           name="nombre"
@@ -136,9 +177,17 @@ const Checkout = () => {
           value={form.nombre}
           onChange={handleChange}
         />
-        {errores.nombre && <span className="checkout-campo-error">{errores.nombre}</span>}
 
-        <label htmlFor="apellido">Apellido</label>
+        {errores.nombre && (
+          <span className="checkout-campo-error">
+            {errores.nombre}
+          </span>
+        )}
+
+        <label htmlFor="apellido">
+          Apellido
+        </label>
+
         <input
           id="apellido"
           name="apellido"
@@ -147,9 +196,17 @@ const Checkout = () => {
           value={form.apellido}
           onChange={handleChange}
         />
-        {errores.apellido && <span className="checkout-campo-error">{errores.apellido}</span>}
 
-        <label htmlFor="telefono">Teléfono</label>
+        {errores.apellido && (
+          <span className="checkout-campo-error">
+            {errores.apellido}
+          </span>
+        )}
+
+        <label htmlFor="telefono">
+          Teléfono
+        </label>
+
         <input
           id="telefono"
           name="telefono"
@@ -158,9 +215,17 @@ const Checkout = () => {
           value={form.telefono}
           onChange={handleChange}
         />
-        {errores.telefono && <span className="checkout-campo-error">{errores.telefono}</span>}
 
-        <label htmlFor="direccion">Dirección</label>
+        {errores.telefono && (
+          <span className="checkout-campo-error">
+            {errores.telefono}
+          </span>
+        )}
+
+        <label htmlFor="direccion">
+          Dirección
+        </label>
+
         <input
           id="direccion"
           name="direccion"
@@ -169,9 +234,17 @@ const Checkout = () => {
           value={form.direccion}
           onChange={handleChange}
         />
-        {errores.direccion && <span className="checkout-campo-error">{errores.direccion}</span>}
 
-        <label htmlFor="ciudad">Ciudad</label>
+        {errores.direccion && (
+          <span className="checkout-campo-error">
+            {errores.direccion}
+          </span>
+        )}
+
+        <label htmlFor="ciudad">
+          Ciudad
+        </label>
+
         <input
           id="ciudad"
           name="ciudad"
@@ -180,9 +253,18 @@ const Checkout = () => {
           value={form.ciudad}
           onChange={handleChange}
         />
-        {errores.ciudad && <span className="checkout-campo-error">{errores.ciudad}</span>}
 
-        <button type="submit" className="checkout-confirmar" disabled={enviando}>
+        {errores.ciudad && (
+          <span className="checkout-campo-error">
+            {errores.ciudad}
+          </span>
+        )}
+
+        <button
+          type="submit"
+          className="checkout-confirmar"
+          disabled={enviando}
+        >
           {enviando ? 'Procesando...' : 'Confirmar compra'}
         </button>
       </form>
