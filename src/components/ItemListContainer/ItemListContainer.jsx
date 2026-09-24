@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../services/firebase";
 import ItemList from "../ItemList/ItemList";
-import { getProducts } from "../../mock/asyncMock";
 import "./ItemListContainer.css";
 
 const ItemListContainer = ({ greeting }) => {
@@ -12,17 +13,25 @@ const ItemListContainer = ({ greeting }) => {
   const { categoryId } = useParams();
 
   useEffect(() => {
-    // Función async interna: useEffect no puede recibir un callback async directo
     const fetchProducts = async () => {
       try {
-        const products = await getProducts();
+        const itemsCollection = collection(db, "items");
 
-        // Si hay categoryId en la URL, filtramos; si no, mostramos todos
-        if (categoryId) {
-          setItems(products.filter((product) => product.category === categoryId));
-        } else {
-          setItems(products);
-        }
+        // Si hay categoryId, armamos una query filtrada en el servidor;
+        // si no, traemos toda la colección
+        const itemsQuery = categoryId
+          ? query(itemsCollection, where("category", "==", categoryId))
+          : itemsCollection;
+
+        const snapshot = await getDocs(itemsQuery);
+
+        // Combinamos el id del documento con sus datos
+        const products = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setItems(products);
       } catch (error) {
         // Manejo de error agrupado, según convención del proyecto
       }

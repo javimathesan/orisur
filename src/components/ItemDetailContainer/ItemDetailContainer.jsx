@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProductById } from '../../services/getProductById';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import { useCart } from '../../context/CartContext';
 import ItemDetail from '../ItemDetail/ItemDetail';
 import './ItemDetailContainer.css';
@@ -13,8 +14,14 @@ const ItemDetailContainer = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const result = await getProductById(id);
-        setProduct(result);
+        const productRef = doc(db, 'items', id);
+        const snapshot = await getDoc(productRef);
+
+        if (snapshot.exists()) {
+          setProduct({ id: snapshot.id, ...snapshot.data() });
+        } else {
+          setProduct(null);
+        }
       } catch (error) {
         setProduct(null);
       }
