@@ -3,3 +3,16 @@
   font-size: 1.2rem;
   margin-top: 2rem;
 }
+
+.status-message {
+  color: #666;
+}
+
+.error-message {
+  color: #c0392b;
+}
+
+.detail-feedback {
+  text-align: center;
+  padding: 2rem;
+}
