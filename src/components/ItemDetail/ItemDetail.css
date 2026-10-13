@@ -45,3 +45,28 @@
   font-size: 0.9rem;
   color: #666;
 }
+.item-detail-message {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  border-left: 4px solid transparent;
+}
+
+.item-detail-message--exito {
+  background-color: #eaf7ed;
+  border-left-color: #3fa34d;
+  color: #2b6e39;
+}
+
+.item-detail-message--parcial {
+  background-color: #fdf6e3;
+  border-left-color: #d9a441;
+  color: #8a6416;
+}
+
+.item-detail-message--sin-stock {
+  background-color: #fbeaea;
+  border-left-color: #c94f4f;
+  color: #8f3030;
+}
