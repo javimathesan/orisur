@@ -42,9 +42,7 @@ const ItemDetailContainer = () => {
     fetchProduct();
   }, [id]);
 
-  const handleAdd = (quantity) => {
-    addItem(product, quantity);
-  };
+    const handleAdd = (quantity) => addItem(product, quantity);
 
   if (loading) {
     return <p className="status-message">Cargando producto...</p>;
