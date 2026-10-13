@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import Layout from './components/Layout/Layout'
 import ItemListContainer from './components/ItemListContainer/ItemListContainer'
@@ -12,12 +12,6 @@ import NotFound from './components/NotFound/NotFound'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 
 function AppRoutes() {
-  const { loading } = useAuth()
-
-  if (loading) {
-    return <p>Cargando aplicación...</p>
-  }
-
   return (
     <CartProvider>
       <BrowserRouter>
