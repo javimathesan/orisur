@@ -2,6 +2,14 @@
 
 E-commerce de gadgets y tecnología portátil importada desde Asia (China, Japón, Corea) para su venta en Argentina.
 
+## Demo en producción
+
+La aplicación se encuentra desplegada en Vercel:
+
+🔗 **[https://orisur.vercel.app](https://orisur.vercel.app/)**
+
+El despliegue se realiza automáticamente a partir de la rama `main` del repositorio.
+
 ## Tecnologías
 
 * React 19
@@ -57,6 +65,48 @@ src/services/firebase.jsx
 ```
 
 para inicializar Firebase.
+
+## Despliegue
+
+El proyecto está desplegado en **Vercel**, conectado directamente al repositorio de GitHub.
+
+### Variables de entorno en producción
+
+Las variables `VITE_FIREBASE_*` se configuraron manualmente en el panel de Vercel (Settings → Environment Variables), replicando las mismas claves definidas en `.env.example`. Esto permite que Firebase se inicialice correctamente también en producción, sin exponer credenciales en el repositorio.
+
+### Ruteo en producción
+
+Al tratarse de una Single Page Application con React Router, fue necesario agregar un archivo de configuración para que Vercel redirija todas las rutas hacia `index.html` y permita que React Router controle la navegación del lado del cliente:
+
+```text
+vercel.json
+```
+
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+Sin esta configuración, recargar la página (F5) en rutas anidadas como `/item/:id` o `/category/:id` devolvía un error 404 propio del servidor, ya que esas rutas no existen físicamente como archivos.
+
+### Validación realizada en producción
+
+Una vez desplegada la aplicación se verificó:
+
+* Carga del catálogo completo de productos desde Firestore.
+* Filtrado por categoría mediante `query()` y `where()`.
+* Recarga (F5) en rutas anidadas (`/item/:id`, `/category/:id`) sin errores de ruteo.
+* Acceso a una ruta inexistente mostrando correctamente la página 404.
+* Registro e inicio de sesión mediante Firebase Authentication.
+* Persistencia de sesión al recargar la página (`onAuthStateChanged`).
+* Flujo completo de carrito: agregar, eliminar, vaciar y calcular totales.
+* Redirección a `/login` al intentar acceder a `/checkout` sin autenticación.
+* Generación de una orden en la colección `orders` de Firestore.
+* Vaciado del carrito únicamente después de una compra exitosa.
+* Ausencia de errores y warnings en la consola del navegador.
 
 ## Firebase
 
@@ -671,6 +721,19 @@ También pueden comprobarse los siguientes casos:
 * Comprobar que la aplicación no quede indefinidamente en estado de carga.
 
 ## Estado del proyecto
+
+### Entrega final — Despliegue en producción
+
+Como cierre del curso, el proyecto fue consolidado y desplegado en Vercel.
+
+Se incorporó:
+
+* Archivo `vercel.json` con reglas de *rewrite* para dar soporte a las rutas de React Router en producción.
+* Configuración de las variables de entorno de Firebase directamente en el panel de Vercel.
+* Validación completa del flujo de la aplicación en el entorno de producción (catálogo, categorías, detalle, carrito, autenticación y checkout).
+* Verificación de ausencia de errores en consola durante todo el recorrido de prueba.
+
+Esta etapa consolida el trabajo realizado en las Pre-entregas 1 a 7 y deja la aplicación lista para su uso en un entorno real.
 
 ### Pre-entrega 7
 
