@@ -11,35 +11,31 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
 
   const addItem = (item, quantity) => {
-    // Variable externa para poder devolver la cantidad realmente agregada
-    let cantidadAgregada = 0;
+    // 1. Buscamos el producto en el cart actual del closure (no dentro del updater)
+    const existingItem = cart.find((product) => product.id === item.id);
+    const cantidadActual = existingItem ? existingItem.quantity : 0;
 
-    setCart((prev) => {
-      // 1. Buscamos el producto en el carrito actual (siempre con prev, nunca con cart)
-      const existingItem = prev.find((product) => product.id === item.id);
-      const cantidadActual = existingItem ? existingItem.quantity : 0;
+    // 2. Calculamos cuánto stock real queda libre
+    const disponible = item.stock - cantidadActual;
+    const cantidadAgregada = Math.max(0, Math.min(quantity, disponible));
 
-      // 2. Calculamos de forma limpia cuánto stock real queda libre
-      const disponible = item.stock - cantidadActual;
-      cantidadAgregada = Math.max(0, Math.min(quantity, disponible));
+    // 3. Si hay algo para agregar, actualizamos el estado de forma inmutable
+    if (cantidadAgregada > 0) {
+      setCart((prev) => {
+        const yaExiste = prev.some((product) => product.id === item.id);
 
-      // 3. Si no hay espacio para agregar nada, no tocamos el estado
-      if (cantidadAgregada === 0) {
-        return prev;
-      }
+        if (yaExiste) {
+          return prev.map((product) =>
+            product.id === item.id
+              ? { ...product, quantity: product.quantity + cantidadAgregada }
+              : product
+          );
+        }
+        return [...prev, { ...item, quantity: cantidadAgregada }];
+      });
+    }
 
-      // 4. Actualizamos el estado con la cantidad ya validada de manera inmutable
-      if (existingItem) {
-        return prev.map((product) =>
-          product.id === item.id
-            ? { ...product, quantity: product.quantity + cantidadAgregada }
-            : product
-        );
-      }
-      return [...prev, { ...item, quantity: cantidadAgregada }];
-    });
-
-    // 5. Retornamos con total precisión la cantidad añadida
+    // 4. Retornamos la cantidad realmente agregada, ya calculada de forma determinista
     return cantidadAgregada;
   };
 
@@ -55,6 +51,12 @@ export function CartProvider({ children }) {
     return cart.some((product) => product.id === id);
   };
 
+  // Devuelve la cantidad actual en el carrito de un producto puntual (0 si no está)
+  const getItemQuantity = (id) => {
+    const existingItem = cart.find((product) => product.id === id);
+    return existingItem ? existingItem.quantity : 0;
+  };
+
   const totalItems = cart.reduce((acc, product) => acc + product.quantity, 0);
 
   const totalPrice = cart.reduce((acc, product) => acc + product.price * product.quantity, 0);
@@ -67,6 +69,7 @@ export function CartProvider({ children }) {
         removeItem,
         clear,
         isInCart,
+        getItemQuantity,
         totalItems,
         totalPrice,
       }}
